@@ -3,234 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Style Sphere | Colección Exclusiva</title>
+    <title>Style Sphere | Admin Panel & Shop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         .product-card:hover .product-image { transform: scale(1.05); }
-        .category-pill.active { background-color: black; color: white; }
+        .category-pill.active { background-color: black; color: white; border-color: black; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; items-center: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal.active { display: flex; }
+        /* Scrollbar styling para los filtros */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Chatbot Styles */
+        #ai-chat-bubble { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        #ai-chat-window { position: fixed; bottom: 90px; right: 20px; width: 350px; height: 450px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1000; border: 1px solid #eee; }
+        #ai-chat-window.active { display: flex; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
 
-    <!-- Header / Nav -->
+    <!-- Header -->
     <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold tracking-tighter text-black">STYLE SPHERE</h1>
+            <h1 class="text-2xl font-bold tracking-tighter text-black cursor-pointer" onclick="window.location.reload()">STYLE SPHERE</h1>
             <div class="hidden md:flex space-x-8 text-sm font-medium uppercase tracking-widest">
-                <a href="#catalogo" class="hover:text-gray-500 transition">Catálogo</a>
-                <a href="#contacto" class="hover:text-gray-500 transition">Contacto</a>
+                <a href="#catalogo" class="hover:text-gray-500 transition">Tienda</a>
+                <button onclick="toggleAdminView()" class="flex items-center gap-2 text-blue-600 font-bold hover:text-blue-800 transition">
+                    <i data-lucide="settings" class="w-4 h-4"></i> Admin
+                </button>
             </div>
             <div class="flex items-center space-x-4">
                 <a href="https://instagram.com/style.sphere26" target="_blank" class="text-gray-600 hover:text-pink-600 transition">
                     <i data-lucide="instagram" class="w-5 h-5"></i>
                 </a>
-                <button id="cart-btn" class="relative">
-                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                </button>
+                <a href="https://wa.me/573249433122" target="_blank" class="text-gray-600 hover:text-green-600 transition md:hidden">
+                    <i data-lucide="phone" class="w-5 h-5"></i>
+                </a>
             </div>
         </nav>
     </header>
 
-    <!-- Hero Section -->
-    <section class="relative h-[70vh] flex items-center justify-center bg-black text-white overflow-hidden">
-        <div class="absolute inset-0 opacity-60">
-            <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=2070" alt="Hero Background" class="w-full h-full object-cover">
-        </div>
-        <div class="relative z-10 text-center px-4">
-            <span class="uppercase tracking-[0.3em] text-sm mb-4 block">Nueva Temporada 2024</span>
-            <h2 class="text-5xl md:text-7xl font-bold mb-6 tracking-tight">Redefine tu Estilo</h2>
-            <a href="#catalogo" class="inline-block bg-white text-black px-10 py-4 font-bold uppercase text-sm tracking-widest hover:bg-gray-200 transition-all duration-300">Explorar Catálogo</a>
-        </div>
-    </section>
-
-    <!-- Filter Section -->
-    <section id="catalogo" class="container mx-auto px-6 pt-20 pb-10">
-        <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-gray-200 pb-6">
+    <!-- Admin Panel -->
+    <section id="admin-panel" class="hidden container mx-auto px-6 py-10 bg-white border-b shadow-inner animate-in slide-in-from-top duration-500">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <h3 class="text-3xl font-bold mb-2">Nuestras Colecciones</h3>
-                <p class="text-gray-500">Piezas seleccionadas para elevar tu guardarropa diario.</p>
+                <h2 class="text-2xl font-bold uppercase tracking-tight">Gestión de Inventario</h2>
+                <p class="text-gray-500 text-sm italic">Modifica precios, nombres y categorías en tiempo real.</p>
             </div>
-            <div id="category-filters" class="flex flex-wrap gap-2 mt-6 md:mt-0">
-                <button onclick="filterProducts('all')" class="category-pill active px-6 py-2 rounded-full border border-black text-sm transition font-medium uppercase">Todos</button>
-                <button onclick="filterProducts('Essentials')" class="category-pill px-6 py-2 rounded-full border border-gray-300 text-sm hover:border-black transition font-medium uppercase">Essentials</button>
-                <button onclick="filterProducts('Premium')" class="category-pill px-6 py-2 rounded-full border border-gray-300 text-sm hover:border-black transition font-medium uppercase">Premium</button>
-                <button onclick="filterProducts('Streetwear')" class="category-pill px-6 py-2 rounded-full border border-gray-300 text-sm hover:border-black transition font-medium uppercase">Streetwear</button>
-            </div>
+            <button onclick="openProductModal()" class="bg-black text-white px-6 py-3 text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition shadow-lg">
+                <i data-lucide="plus-circle" class="w-5 h-5"></i> Agregar Nuevo Producto
+            </button>
         </div>
-
-        <!-- Product Grid -->
-        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-            <!-- Productos renderizados por JS -->
+        
+        <div class="overflow-x-auto bg-gray-50 rounded-xl border">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b text-[10px] uppercase text-gray-400 font-bold tracking-widest bg-gray-100">
+                        <th class="py-4 px-6">Vista</th>
+                        <th class="py-4 px-2">Producto / Categoría</th>
+                        <th class="py-4 px-2 text-right">Precio</th>
+                        <th class="py-4 px-6 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                    <!-- Filas generadas por JS -->
+                </tbody>
+            </table>
         </div>
     </section>
 
-    <!-- Footer / Contact -->
-    <footer id="contacto" class="bg-white border-t border-gray-200 pt-20 pb-10">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
-                <div>
-                    <h4 class="text-xl font-bold mb-6 uppercase tracking-widest">Style Sphere</h4>
-                    <p class="text-gray-500 leading-relaxed">Dedicados a ofrecer moda de alta calidad que resuene con la personalidad de cada cliente. Estilo, confort y vanguardia en un solo lugar.</p>
-                </div>
-                <div>
-                    <h4 class="text-sm font-bold mb-6 uppercase tracking-widest text-gray-400">Atención al Cliente</h4>
-                    <ul class="space-y-4 font-medium">
-                        <li><a href="https://wa.me/573249433122" class="flex items-center gap-3 hover:text-green-600 transition"><i data-lucide="phone" class="w-4 h-4"></i> +57 324 9433122</a></li>
-                        <li><a href="https://instagram.com/style.sphere26" class="flex items-center gap-3 hover:text-pink-600 transition"><i data-lucide="instagram" class="w-4 h-4"></i> @style.sphere26</a></li>
-                        <li class="flex items-center gap-3 text-gray-500"><i data-lucide="map-pin" class="w-4 h-4"></i> Envios a todo Colombia</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="text-sm font-bold mb-6 uppercase tracking-widest text-gray-400">Horarios de Atención</h4>
-                    <p class="text-gray-500">Lunes a Sábado: 9:00 AM - 7:00 PM<br>Domingos y Festivos: 10:00 AM - 4:00 PM</p>
+    <!-- Store View -->
+    <main id="store-view">
+        <!-- Hero Section -->
+        <section class="relative h-[40vh] md:h-[50vh] flex items-center justify-center bg-black text-white overflow-hidden">
+            <div class="absolute inset-0 opacity-50">
+                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2070" alt="Moda" class="w-full h-full object-cover">
+            </div>
+            <div class="relative z-10 text-center px-4">
+                <h2 class="text-4xl md:text-6xl font-bold mb-4 tracking-tighter uppercase">Estilo Sin Límites</h2>
+                <p class="text-xs md:text-sm tracking-[0.4em] uppercase font-light">Categorías para toda la familia</p>
+            </div>
+        </section>
+
+        <!-- Catalog Filters -->
+        <section id="catalogo" class="container mx-auto px-6 py-12">
+            <div class="mb-10 text-center md:text-left">
+                <h3 class="text-3xl font-bold mb-2 uppercase tracking-tighter">Nuestro Catálogo</h3>
+                <p class="text-gray-500">Selecciona una categoría para filtrar productos.</p>
+            </div>
+            
+            <!-- Category Pills Container with Horizontal Scroll -->
+            <div class="flex items-center gap-4 mb-12 overflow-x-auto py-2 hide-scrollbar">
+                <button onclick="filterProducts('all')" class="category-pill active whitespace-nowrap px-6 py-2 rounded-full border border-gray-300 text-[10px] font-bold uppercase tracking-widest transition-all">Todos</button>
+                <div id="pills-container" class="flex gap-3">
+                    <!-- Dinámicamente insertado por JS -->
                 </div>
             </div>
-            <div class="border-t border-gray-100 pt-8 text-center text-gray-400 text-xs uppercase tracking-[0.2em]">
-                &copy; 2024 Style Sphere. Todos los derechos reservados.
+
+            <!-- Product Grid -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12 min-h-[400px]">
+                <!-- Productos Dinámicos -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Formulario Producto -->
+    <div id="product-modal" class="modal px-4">
+        <div class="bg-white w-full max-w-lg p-8 rounded-2xl shadow-2xl relative overflow-y-auto max-h-[90vh]">
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition">
+                <i data-lucide="x-circle" class="w-8 h-8"></i>
+            </button>
+            <h3 id="modal-title" class="text-2xl font-bold mb-8 uppercase tracking-tight border-b pb-4">Gestión de Producto</h3>
+            <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input type="hidden" id="edit-id">
+                
+                <div class="md:col-span-2">
+                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest flex justify-between">
+                        Nombre de la Prenda
+                        <button type="button" onclick="improveTitleAI()" class="text-blue-600 hover:underline flex items-center gap-1">✨ Mejorar</button>
+                    </label>
+                    <input type="text" id="prod-nombre" required placeholder="Ej: Franela Dama Basic White" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
+                </div>
+                
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Precio (COP)</label>
+                    <input type="number" id="prod-precio" required placeholder="0" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
+                </div>
+                
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Categoría</label>
+                    <select id="prod-categoria" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition bg-white cursor-pointer" required>
+                        <!-- Opciones cargadas por JS -->
+                    </select>
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Enlace de Imagen (URL)</label>
+                    <input type="url" id="prod-imagen" placeholder="https://imgur.com/tu-foto.jpg" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-sm">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest flex justify-between">
+                        Descripción de Marketing
+                        <button type="button" onclick="generateDescriptionAI()" class="text-purple-600 hover:underline flex items-center gap-1">✨ Generar con IA</button>
+                    </label>
+                    <textarea id="prod-desc" rows="2" placeholder="Escribe algo breve..." class="w-full border rounded-lg p-3 text-sm focus:border-black outline-none transition"></textarea>
+                </div>
+                
+                <div class="md:col-span-2 mt-4">
+                    <button type="submit" class="w-full bg-black text-white font-bold py-4 uppercase tracking-widest hover:bg-gray-800 transition rounded-lg shadow-xl flex justify-center items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI Style Assistant (Chatbot) -->
+    <div id="ai-chat-bubble">
+        <button onclick="toggleAIChat()" class="bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
+            <i data-lucide="sparkles"></i> Asistente ✨
+        </button>
+    </div>
+
+    <div id="ai-chat-window">
+        <div class="bg-indigo-600 p-4 text-white flex justify-between items-center rounded-t-xl">
+            <span class="font-bold flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i> Guía de Estilo</span>
+            <button onclick="toggleAIChat()"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm flex flex-col">
+            <div class="bg-gray-100 p-3 rounded-lg self-start max-w-[80%]">¡Hola! Soy tu asistente de Style Sphere. ¿Buscas un outfit para una ocasión especial? ✨</div>
+        </div>
+        <div class="p-3 border-t flex gap-2">
+            <input type="text" id="chat-input" placeholder="Pregunta algo..." class="flex-1 border rounded-full px-4 py-2 text-sm outline-none focus:border-indigo-600">
+            <button onclick="sendChatMessage()" class="bg-indigo-600 text-white p-2 rounded-full"><i data-lucide="send" class="w-4 h-4"></i></button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="contacto" class="bg-black text-white pt-20 pb-10">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-16 mb-20">
+                <div class="text-center md:text-left">
+                    <h4 class="text-2xl font-bold mb-6 tracking-tighter">STYLE SPHERE</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto md:mx-0">Tu destino premium para moda en Colombia. Calidad, estilo y atención personalizada en cada compra.</p>
+                </div>
+                <div class="text-center">
+                    <h4 class="text-xs font-bold mb-6 uppercase tracking-[0.3em] text-gray-500">Contacto Directo</h4>
+                    <div class="flex justify-center space-x-8">
+                        <a href="https://wa.me/573249433122" class="hover:text-green-500 transition-all scale-125"><i data-lucide="phone"></i></a>
+                        <a href="https://instagram.com/style.sphere26" class="hover:text-pink-500 transition-all scale-125"><i data-lucide="instagram"></i></a>
+                    </div>
+                    <p class="mt-6 text-sm font-medium">+57 324 9433122</p>
+                </div>
+                <div class="text-center md:text-right">
+                    <h4 class="text-xs font-bold mb-6 uppercase tracking-[0.3em] text-gray-500">Info Ventas</h4>
+                    <p class="text-gray-400 text-sm italic mb-2">Envíos a nivel nacional</p>
+                    <p class="text-gray-400 text-sm italic">Pagos contra-entrega disponibles</p>
+                </div>
+            </div>
+            <div class="border-t border-white/10 pt-8 text-center text-[10px] text-gray-600 uppercase tracking-widest">
+                &copy; 2024 Style Sphere E-Commerce System | AI Powered 
             </div>
         </div>
     </footer>
 
-    <!-- Script de Datos y Lógica -->
-    <script>
-        // CONFIGURACIÓN DE CONTACTO
-        const WHATSAPP_NUMBER = "573249433122";
-        
-        // BASE DE DATOS DE CATÁLOGO (ACTUALIZAR AQUÍ)
-        const CATALOG_DATA = [
-            {
-                id: 1,
-                nombre: "Camiseta Oversize Noir",
-                precio: 85000,
-                categoria: "Streetwear",
-                imagen: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=800",
-                disponible: true
-            },
-            {
-                id: 2,
-                nombre: "Chaqueta Denim Vintage",
-                precio: 165000,
-                categoria: "Premium",
-                imagen: "https://images.unsplash.com/photo-1523205771623-e0faa4d2813d?auto=format&fit=crop&q=80&w=800",
-                disponible: true
-            },
-            {
-                id: 3,
-                nombre: "Jogger Tech Black",
-                precio: 120000,
-                categoria: "Streetwear",
-                imagen: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&q=80&w=800",
-                disponible: true
-            },
-            {
-                id: 4,
-                nombre: "Hoodie Essential Grey",
-                precio: 140000,
-                categoria: "Essentials",
-                imagen: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=800",
-                disponible: true
-            },
-            {
-                id: 5,
-                nombre: "Camisa Minimalista Lino",
-                precio: 110000,
-                categoria: "Essentials",
-                imagen: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=800",
-                disponible: true
-            },
-            {
-                id: 6,
-                nombre: "Blazer Modern Fit",
-                precio: 250000,
-                categoria: "Premium",
-                imagen: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800",
-                disponible: true
-            }
-        ];
+    <!-- Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Función para formatear moneda
-        const formatCurrency = (amount) => {
-            return new Intl.NumberFormat('es-CO', {
-                style: 'currency',
-                currency: 'COP',
-                minimumFractionDigits: 0
-            }).format(amount);
+        const apiKey = ""; // API KEY PROPORCIONADA POR EL ENTORNO
+        const CATEGORIAS = ["franela dama", "franela caballero", "Conjunto dama", "conjunto caballero", "conjunto niña", "conjunto niño", "buzos caballeros", "buzos dama", "franelas niños", "franelas niñas", "zapatos", "bolsos", "vestidos", "accesorios"];
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'style-sphere-main';
+        const WHATSAPP_NUMBER = "573249433122";
+
+        let allProducts = [];
+        let user = null;
+
+        // GEMINI API CALL UTILITY
+        async function callGemini(prompt, systemPrompt = "") {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: JSON.stringify(payload),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Error en la generación.";
+                } catch (e) {
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+            return "Lo siento, la IA no está disponible en este momento.";
+        }
+
+        // AI FEATURES (ADMIN)
+        window.improveTitleAI = async () => {
+            const currentTitle = document.getElementById('prod-nombre').value;
+            const category = document.getElementById('prod-categoria').value;
+            if (!currentTitle) return;
+            
+            const btn = event.target;
+            btn.innerText = "Cargando...";
+            const improved = await callGemini(
+                `Mejora este título de prenda de ropa para una tienda online: "${currentTitle}". Categoría: ${category}. Solo devuelve el nuevo título, corto y elegante.`,
+                "Eres un experto en copy de moda de lujo."
+            );
+            document.getElementById('prod-nombre').value = improved.trim().replace(/"/g, '');
+            btn.innerText = "✨ Mejorar";
         };
 
-        // Función para renderizar el grid
-        function renderGrid(products) {
+        window.generateDescriptionAI = async () => {
+            const name = document.getElementById('prod-nombre').value;
+            const category = document.getElementById('prod-categoria').value;
+            if (!name) return;
+
+            const btn = event.target;
+            btn.innerText = "Generando...";
+            const desc = await callGemini(
+                `Escribe una descripción de marketing muy breve (máximo 15 palabras) para una prenda llamada "${name}" de la categoría ${category}. Que suene premium.`,
+                "Eres un redactor creativo de moda."
+            );
+            document.getElementById('prod-desc').value = desc.trim();
+            btn.innerText = "✨ Generar con IA";
+        };
+
+        // AI CHATBOT (USER)
+        window.toggleAIChat = () => document.getElementById('ai-chat-window').classList.toggle('active');
+
+        window.sendChatMessage = async () => {
+            const input = document.getElementById('chat-input');
+            const msg = input.value;
+            if (!msg) return;
+
+            appendMessage(msg, 'user');
+            input.value = '';
+
+            const systemPrompt = `Eres el asistente de estilo de Style Sphere Colombia. Ayuda a los usuarios a elegir ropa. 
+            Conoce nuestras categorías: ${CATEGORIAS.join(', ')}. 
+            Si te preguntan qué comprar, recomienda productos basados en el catálogo actual: ${JSON.stringify(allProducts.map(p => p.nombre))}.
+            Responde de forma amable y chic. Si el usuario quiere comprar algo, dile que haga clic en el botón de WhatsApp del producto.`;
+
+            const response = await callGemini(msg, systemPrompt);
+            appendMessage(response, 'ai');
+        };
+
+        function appendMessage(text, sender) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = sender === 'user' ? 'bg-indigo-100 p-3 rounded-lg self-end max-w-[80%]' : 'bg-gray-100 p-3 rounded-lg self-start max-w-[80%]';
+            div.innerText = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // --- FUNCIONES EXISTENTES ADAPTADAS ---
+        function setupUI() {
+            const select = document.getElementById('prod-categoria');
+            const pillsContainer = document.getElementById('pills-container');
+            CATEGORIAS.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat; opt.innerText = cat;
+                select.appendChild(opt);
+                const pill = document.createElement('button');
+                pill.className = "category-pill whitespace-nowrap px-6 py-2 rounded-full border border-gray-200 text-[10px] font-bold uppercase tracking-widest hover:border-black transition-all";
+                pill.innerText = cat;
+                pill.onclick = () => filterProducts(cat, pill);
+                pillsContainer.appendChild(pill);
+            });
+            lucide.createIcons();
+        }
+
+        const initAuth = async () => {
+            try {
+                await signInAnonymously(auth);
+                onAuthStateChanged(auth, (u) => {
+                    user = u; if(user) listenToProducts();
+                });
+            } catch (error) { console.error("Auth error", error); }
+        };
+
+        function listenToProducts() {
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
+            onSnapshot(colRef, (snapshot) => {
+                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderStore(allProducts);
+                renderAdminTable(allProducts);
+            });
+        }
+
+        function renderStore(products) {
             const grid = document.getElementById('product-grid');
-            grid.innerHTML = '';
-
-            products.forEach(product => {
-                const message = encodeURIComponent(`Hola Style Sphere, me interesa comprar el producto: ${product.nombre} (${formatCurrency(product.precio)})`);
-                const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
-
-                const card = `
-                    <div class="product-card group opacity-0 translate-y-4 transition-all duration-700 ease-out">
-                        <div class="relative overflow-hidden bg-gray-200 aspect-[3/4] mb-6">
-                            <img src="${product.imagen}" alt="${product.nombre}" class="product-image w-full h-full object-cover transition-transform duration-700">
-                            <div class="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors duration-300"></div>
-                            <span class="absolute top-4 left-4 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest">${product.categoria}</span>
+            grid.innerHTML = products.length === 0 ? '<div class="col-span-full text-center py-20 text-gray-400 italic">No hay productos aún.</div>' : '';
+            products.forEach(p => {
+                const message = encodeURIComponent(`Hola Style Sphere, me interesa: ${p.nombre}`);
+                grid.innerHTML += `
+                    <div class="product-card group animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div class="relative overflow-hidden bg-white aspect-[3/4] mb-6 rounded-lg shadow-sm border">
+                            <img src="${p.imagen}" class="product-image w-full h-full object-cover transition-transform duration-1000">
                         </div>
                         <div class="space-y-2">
-                            <h4 class="text-sm font-medium text-gray-600 uppercase tracking-tighter">${product.nombre}</h4>
-                            <p class="text-lg font-bold">${formatCurrency(product.precio)}</p>
-                            <a href="${waLink}" target="_blank" class="flex items-center justify-center gap-2 w-full border border-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition duration-300">
-                                <i data-lucide="send" class="w-3 h-3"></i> Comprar por WhatsApp
-                            </a>
+                            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">${p.categoria}</span>
+                            <h3 class="text-sm font-semibold uppercase">${p.nombre}</h3>
+                            <p class="text-xs text-gray-500 italic">${p.descripcion || ''}</p>
+                            <p class="text-xl font-bold text-black">${formatCurrency(p.precio)}</p>
+                            <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" target="_blank" class="flex items-center justify-center gap-2 w-full bg-white border border-black py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all">Consultar WhatsApp</a>
                         </div>
-                    </div>
-                `;
-                grid.innerHTML += card;
+                    </div>`;
             });
-
-            // Inicializar iconos de Lucide
             lucide.createIcons();
-
-            // Animación de entrada
-            setTimeout(() => {
-                const cards = document.querySelectorAll('.product-card');
-                cards.forEach((card, index) => {
-                    setTimeout(() => {
-                        card.classList.remove('opacity-0', 'translate-y-4');
-                    }, index * 100);
-                });
-            }, 50);
         }
 
-        // Función de Filtrado
-        function filterProducts(category) {
-            // Actualizar UI de botones
-            const buttons = document.querySelectorAll('.category-pill');
-            buttons.forEach(btn => {
-                btn.classList.remove('active', 'bg-black', 'text-white');
-                btn.classList.add('border-gray-300');
+        function renderAdminTable(products) {
+            const tableBody = document.getElementById('admin-table-body');
+            tableBody.innerHTML = '';
+            products.forEach(p => {
+                tableBody.innerHTML += `
+                    <tr class="border-b hover:bg-white transition group">
+                        <td class="py-4 px-6"><img src="${p.imagen}" class="w-14 h-14 object-cover rounded shadow-sm"></td>
+                        <td class="py-4 px-2">
+                            <div class="font-bold text-xs uppercase">${p.nombre}</div>
+                            <div class="text-[9px] text-gray-400 uppercase">${p.categoria}</div>
+                        </td>
+                        <td class="py-4 px-2 text-right font-bold text-sm">${formatCurrency(p.precio)}</td>
+                        <td class="py-4 px-6 text-center">
+                            <button onclick="editProduct('${p.id}')" class="p-2 text-indigo-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`;
             });
-
-            const currentBtn = Array.from(buttons).find(btn => btn.innerText.toLowerCase() === category.toLowerCase() || (category === 'all' && btn.innerText.toLowerCase() === 'todos'));
-            if (currentBtn) {
-                currentBtn.classList.add('active', 'bg-black', 'text-white');
-                currentBtn.classList.remove('border-gray-300');
-            }
-
-            // Filtrar data
-            if (category === 'all') {
-                renderGrid(CATALOG_DATA);
-            } else {
-                const filtered = CATALOG_DATA.filter(p => p.categoria === category);
-                renderGrid(filtered);
-            }
+            lucide.createIcons();
         }
 
-        // Inicialización al cargar la página
-        window.onload = () => {
-            renderGrid(CATALOG_DATA);
-            lucide.createIcons();
+        window.saveProduct = async (e) => {
+            e.preventDefault();
+            if(!user) return;
+            const id = document.getElementById('edit-id').value;
+            const data = {
+                nombre: document.getElementById('prod-nombre').value,
+                precio: Number(document.getElementById('prod-precio').value),
+                categoria: document.getElementById('prod-categoria').value,
+                imagen: document.getElementById('prod-imagen').value,
+                descripcion: document.getElementById('prod-desc').value,
+                updatedAt: new Date().toISOString()
+            };
+            try {
+                if (id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), data);
+                else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
+                closeProductModal();
+            } catch (err) { console.error(err); }
         };
+
+        window.deleteProduct = async (id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id)); };
+        
+        window.editProduct = (id) => {
+            const p = allProducts.find(prod => prod.id === id);
+            if(!p) return;
+            document.getElementById('edit-id').value = p.id;
+            document.getElementById('prod-nombre').value = p.nombre;
+            document.getElementById('prod-precio').value = p.precio;
+            document.getElementById('prod-categoria').value = p.categoria;
+            document.getElementById('prod-imagen').value = p.imagen;
+            document.getElementById('prod-desc').value = p.descripcion || '';
+            document.getElementById('product-modal').classList.add('active');
+        };
+
+        const formatCurrency = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
+        window.toggleAdminView = () => document.getElementById('admin-panel').classList.toggle('hidden');
+        window.openProductModal = () => { document.getElementById('product-form').reset(); document.getElementById('edit-id').value = ''; document.getElementById('product-modal').classList.add('active'); };
+        window.closeProductModal = () => document.getElementById('product-modal').classList.remove('active');
+        window.filterProducts = (cat, clickedPill = null) => {
+            const pills = document.querySelectorAll('.category-pill');
+            pills.forEach(p => p.classList.remove('active', 'bg-black', 'text-white'));
+            if(clickedPill) clickedPill.classList.add('active');
+            renderStore(cat === 'all' ? allProducts : allProducts.filter(p => p.categoria === cat));
+        };
+
+        document.getElementById('product-form').onsubmit = window.saveProduct;
+        setupUI();
+        initAuth();
     </script>
 </body>
 </html>
