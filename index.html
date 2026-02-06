@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Style Sphere | Shop & AI Assistant</title>
+    <title>Style Sphere | Official Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         .product-card:hover .product-image { transform: scale(1.05); }
@@ -16,43 +17,52 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        #ai-chat-bubble { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
-        #ai-chat-window { position: fixed; bottom: 90px; right: 20px; width: 350px; height: 450px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1000; border: 1px solid #eee; }
+        #ai-chat-bubble { position: fixed; bottom: 30px; right: 30px; z-index: 1000; }
+        #ai-chat-window { position: fixed; bottom: 100px; right: 30px; width: 350px; height: 500px; background: white; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); display: none; flex-direction: column; z-index: 1000; border: 1px solid #f0f0f0; overflow: hidden; }
         #ai-chat-window.active { display: flex; }
+
+        /* Estética de la tabla administrativa según la captura */
+        .admin-table-header { background-color: #f8f9fa; border-radius: 12px; margin-bottom: 1rem; }
+        .admin-row:hover { background-color: #fafafa; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-white text-gray-900">
 
     <!-- Login Modal -->
     <div id="login-modal" class="modal px-4">
-        <div class="bg-white w-full max-w-sm p-8 rounded-2xl shadow-2xl text-center relative">
-            <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition">
-                <i data-lucide="x-circle"></i>
+        <div class="bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center relative">
+            <button onclick="closeLoginModal()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition">
+                <i data-lucide="x"></i>
             </button>
-            <h3 class="text-2xl font-bold mb-2 tracking-tighter uppercase">Style Sphere</h3>
-            <p class="text-gray-500 text-[10px] mb-8 uppercase tracking-widest">Panel de Administración</p>
-            <div class="space-y-4">
-                <input type="text" id="login-user" placeholder="Usuario" class="w-full border rounded-lg px-4 py-3 outline-none focus:border-black transition">
-                <input type="password" id="login-pass" placeholder="Contraseña" class="w-full border rounded-lg px-4 py-3 outline-none focus:border-black transition">
-                <button onclick="handleLogin()" class="w-full bg-black text-white font-bold py-3 rounded-lg uppercase tracking-widest hover:bg-gray-800 transition">Iniciar Sesión</button>
+            <h3 class="text-3xl font-extrabold mb-1 tracking-tighter uppercase">STYLE SPHERE</h3>
+            <p class="text-gray-400 text-[10px] mb-8 uppercase tracking-[0.2em] font-bold">Admin Access</p>
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="text-[10px] font-bold uppercase ml-1 mb-1 block">Usuario</label>
+                    <input type="text" id="login-user" class="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-black transition bg-gray-50 border-gray-200">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold uppercase ml-1 mb-1 block">Contraseña</label>
+                    <input type="password" id="login-pass" class="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-black transition bg-gray-50 border-gray-200">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-black text-white font-bold py-4 rounded-xl uppercase tracking-widest hover:opacity-90 transition mt-4">Iniciar Sesión</button>
             </div>
-            <p id="login-error" class="text-red-500 text-[10px] mt-4 uppercase hidden">Credenciales incorrectas</p>
+            <p id="login-error" class="text-red-500 text-[10px] mt-4 uppercase hidden font-bold">Credenciales incorrectas</p>
         </div>
     </div>
 
-    <!-- App Header -->
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold tracking-tighter text-black cursor-pointer" onclick="window.location.reload()">STYLE SPHERE</h1>
-            <div class="hidden md:flex space-x-8 text-sm font-medium uppercase tracking-widest">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100">
+        <nav class="container mx-auto px-6 py-6 flex justify-between items-center">
+            <h1 class="text-2xl font-black tracking-tighter text-black cursor-pointer uppercase" onclick="window.location.reload()">STYLE SPHERE</h1>
+            
+            <div class="flex items-center space-x-8 text-[11px] font-bold uppercase tracking-widest">
                 <a href="#catalogo" class="hover:text-gray-500 transition">Tienda</a>
-                <button id="admin-nav-trigger" onclick="requestAdminAccess()" class="flex items-center gap-2 text-gray-600 font-bold hover:text-black transition">
-                    <i data-lucide="lock" class="w-4 h-4"></i> Admin
+                <button id="admin-nav-trigger" onclick="requestAdminAccess()" class="flex items-center gap-2 text-gray-600 hover:text-black transition">
+                    <i data-lucide="settings" class="w-4 h-4"></i> Gestionar
                 </button>
-                <button id="logout-btn" onclick="logout()" class="hidden text-red-500 font-bold hover:underline">Cerrar Sesión</button>
-            </div>
-            <div class="flex items-center space-x-4">
-                <a href="https://instagram.com/style.sphere26" target="_blank" class="text-gray-600 hover:text-pink-600 transition">
+                <button id="logout-btn" onclick="logout()" class="hidden text-red-500 hover:underline">Cerrar Sesión</button>
+                <a href="https://instagram.com/style.sphere26" target="_blank" class="text-black">
                     <i data-lucide="instagram" class="w-5 h-5"></i>
                 </a>
             </div>
@@ -60,153 +70,141 @@
     </header>
 
     <!-- Admin Panel -->
-    <section id="admin-panel" class="hidden container mx-auto px-6 py-10 bg-white border-b shadow-inner">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-                <h2 class="text-2xl font-bold uppercase tracking-tight">Gestión de Inventario</h2>
-                <p class="text-gray-500 text-sm italic">Control de productos del catálogo.</p>
-            </div>
-            <button onclick="openProductModal()" class="bg-black text-white px-6 py-3 text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition shadow-lg">
-                <i data-lucide="plus-circle" class="w-5 h-5"></i> Agregar Nuevo
-            </button>
+    <section id="admin-panel" class="hidden container mx-auto px-6 py-10 animate-in fade-in duration-500">
+        <div class="bg-[#f8f9fa] rounded-2xl p-4 mb-6 flex justify-between items-center border border-gray-100">
+             <div class="flex space-x-20 text-[10px] font-bold uppercase text-gray-400 tracking-widest px-4">
+                <span>Vista</span>
+                <span>Producto / Categoría</span>
+                <span class="ml-auto">Precio</span>
+                <span>Acciones</span>
+             </div>
         </div>
-        <div class="overflow-x-auto bg-gray-50 rounded-xl border">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b text-[10px] uppercase text-gray-400 font-bold tracking-widest bg-gray-100">
-                        <th class="py-4 px-6">Vista</th>
-                        <th class="py-4 px-2">Producto / Categoría</th>
-                        <th class="py-4 px-2 text-right">Precio</th>
-                        <th class="py-4 px-6 text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-table-body"></tbody>
-            </table>
+        
+        <div id="admin-table-body" class="space-y-2 mb-10">
+            <!-- Rows injected here -->
+        </div>
+
+        <div class="flex justify-center">
+            <button onclick="openProductModal()" class="bg-black text-white px-10 py-4 rounded-full text-xs font-bold uppercase tracking-widest hover:scale-105 transition shadow-xl flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i> Agregar Nuevo Producto
+            </button>
         </div>
     </section>
 
-    <!-- Store Content -->
+    <!-- Store Hero (Estética exacta de la captura) -->
     <main id="store-view">
-        <section class="relative h-[40vh] flex items-center justify-center bg-black text-white overflow-hidden">
-            <div class="absolute inset-0 opacity-50">
+        <section class="relative h-[45vh] flex items-center justify-center bg-black text-white overflow-hidden">
+            <div class="absolute inset-0 opacity-60">
                 <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2070" class="w-full h-full object-cover">
             </div>
             <div class="relative z-10 text-center px-4">
-                <h2 class="text-4xl md:text-6xl font-bold mb-4 tracking-tighter uppercase">Estilo Inteligente</h2>
-                <p class="text-xs md:text-sm tracking-[0.4em] uppercase font-light">Pregunta a nuestro asistente de moda</p>
+                <h2 class="text-5xl md:text-7xl font-black mb-2 tracking-tighter uppercase">ESTILO INTELIGENTE</h2>
+                <p class="text-[10px] md:text-xs tracking-[0.4em] uppercase font-bold opacity-90">PREGUNTA A NUESTRO ASISTENTE DE MODA</p>
             </div>
         </section>
 
+        <!-- Filtros -->
         <section id="catalogo" class="container mx-auto px-6 py-12">
-            <div class="flex items-center gap-4 mb-12 overflow-x-auto py-2 hide-scrollbar">
-                <button onclick="filterProducts('all')" class="category-pill active whitespace-nowrap px-6 py-2 rounded-full border border-gray-300 text-[10px] font-bold uppercase tracking-widest transition-all">Todos</button>
-                <div id="pills-container" class="flex gap-3"></div>
+            <div class="flex items-center gap-4 mb-16 overflow-x-auto py-2 hide-scrollbar">
+                <button onclick="filterProducts('all', this)" class="category-pill active whitespace-nowrap px-8 py-3 rounded-full border border-gray-200 text-[10px] font-black uppercase tracking-widest transition-all">TODOS</button>
+                <div id="pills-container" class="flex gap-4"></div>
             </div>
-            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12"></div>
+            
+            <!-- Grid de productos -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-16">
+                <!-- Injected via JS -->
+            </div>
         </section>
     </main>
 
     <!-- Product Modal -->
     <div id="product-modal" class="modal px-4">
-        <div class="bg-white w-full max-w-lg p-8 rounded-2xl shadow-2xl relative overflow-y-auto max-h-[90vh]">
-            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
-            <h3 id="modal-title" class="text-2xl font-bold mb-8 uppercase tracking-tight border-b pb-4">Gestión de Producto</h3>
-            <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white w-full max-w-xl p-10 rounded-3xl shadow-2xl relative overflow-y-auto max-h-[90vh]">
+            <button onclick="closeProductModal()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <h3 id="modal-title" class="text-2xl font-black mb-8 uppercase tracking-tighter border-b pb-4">Editor de Inventario</h3>
+            
+            <form id="product-form" class="space-y-6">
                 <input type="hidden" id="edit-id">
-                <div class="md:col-span-2">
-                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest flex justify-between">
-                        Nombre de la Prenda
-                        <button type="button" onclick="improveTitleAI()" class="text-blue-600 hover:underline flex items-center gap-1">✨ IA</button>
-                    </label>
-                    <input type="text" id="prod-nombre" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold uppercase text-gray-400 mb-2 block tracking-widest">Nombre de la Prenda</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="prod-nombre" required class="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-black outline-none transition font-semibold">
+                            <button type="button" onclick="improveTitleAI()" class="bg-indigo-50 text-indigo-600 px-4 rounded-xl text-[10px] font-bold hover:bg-indigo-100 transition uppercase">✨ IA</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-gray-400 mb-2 block tracking-widest">Precio (COP)</label>
+                        <input type="number" id="prod-precio" required class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-black outline-none transition font-semibold">
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-gray-400 mb-2 block tracking-widest">Categoría</label>
+                        <select id="prod-categoria" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-black outline-none transition font-semibold appearance-none" required></select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold uppercase text-gray-400 mb-2 block tracking-widest">Link de la Imagen</label>
+                        <input type="url" id="prod-imagen" required class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-black outline-none transition text-sm">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold uppercase text-gray-400 mb-2 block tracking-widest">Descripción</label>
+                        <textarea id="prod-desc" rows="3" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:ring-2 focus:ring-black outline-none transition"></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Precio</label>
-                    <input type="number" id="prod-precio" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Categoría</label>
-                    <select id="prod-categoria" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition bg-white" required></select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">URL Imagen</label>
-                    <input type="url" id="prod-imagen" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-sm">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest flex justify-between">
-                        Descripción Marketing
-                        <button type="button" onclick="generateDescriptionAI()" class="text-purple-600 hover:underline flex items-center gap-1">✨ IA</button>
-                    </label>
-                    <textarea id="prod-desc" rows="2" class="w-full border rounded-lg p-3 text-sm focus:border-black outline-none transition"></textarea>
-                </div>
-                <div class="md:col-span-2 mt-4">
-                    <button type="submit" id="save-btn" class="w-full bg-black text-white font-bold py-4 uppercase tracking-widest rounded-lg shadow-xl hover:bg-gray-800 transition">Guardar Cambios</button>
-                </div>
+
+                <button type="submit" id="save-btn" class="w-full bg-black text-white font-black py-5 uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:opacity-90 transition transform active:scale-95 mt-4">Guardar Cambios</button>
             </form>
         </div>
     </div>
 
-    <!-- AI Floating Assistant -->
+    <!-- Asistente IA (Estética captura) -->
     <div id="ai-chat-bubble">
-        <button onclick="toggleAIChat()" class="bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
-            <i data-lucide="sparkles"></i> Asistente ✨
+        <button onclick="toggleAIChat()" class="bg-[#5c56d6] text-white px-8 py-5 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-3 font-bold text-xs uppercase tracking-widest">
+            <i data-lucide="sparkles" class="w-5 h-5"></i> ASISTENTE ✨
         </button>
     </div>
+
     <div id="ai-chat-window">
-        <div class="bg-indigo-600 p-4 text-white flex justify-between items-center rounded-t-xl">
-            <span class="font-bold flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i> Guía de Estilo</span>
-            <button onclick="toggleAIChat()"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <div class="bg-[#5c56d6] p-6 text-white flex justify-between items-center">
+            <div>
+                <h4 class="font-black text-sm uppercase tracking-widest">Style AI</h4>
+                <p class="text-[9px] opacity-80 uppercase tracking-tighter">Tu personal shopper digital</p>
+            </div>
+            <button onclick="toggleAIChat()" class="opacity-70 hover:opacity-100 transition"><i data-lucide="x"></i></button>
         </div>
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm flex flex-col"></div>
-        <div class="p-3 border-t flex gap-2">
-            <input type="text" id="chat-input" placeholder="Pregunta algo sobre moda..." class="flex-1 border rounded-full px-4 py-2 text-sm outline-none">
-            <button onclick="sendChatMessage()" class="bg-indigo-600 text-white p-2 rounded-full"><i data-lucide="send" class="w-4 h-4"></i></button>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 text-sm bg-gray-50 hide-scrollbar flex flex-col">
+            <div class="bg-white border border-gray-100 p-4 rounded-2xl rounded-tl-none self-start shadow-sm text-gray-600">
+                ¡Hola! Soy tu asistente de **Style Sphere**. ¿Buscas algo en especial para hoy?
+            </div>
+        </div>
+        <div class="p-4 border-t bg-white flex gap-2">
+            <input type="text" id="chat-input" placeholder="Escribe tu mensaje..." class="flex-1 bg-gray-100 rounded-full px-6 py-3 text-xs outline-none focus:ring-2 focus:ring-indigo-200 transition">
+            <button onclick="sendChatMessage()" class="bg-[#5c56d6] text-white p-3 rounded-full hover:scale-105 transition"><i data-lucide="send" class="w-4 h-4"></i></button>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        // --- CONFIGURACIÓN (REMPLAZA ESTO) ---
+        const SUPABASE_URL = "https://tu-proyecto.supabase.co"; 
+        const SUPABASE_KEY = "tu-anon-key";
+        const GEMINI_API_KEY = ""; 
 
-        // 1. COLOCA TU API KEY DE GEMINI AQUÍ
-        const apiKey = ""; 
-
-        // 2. COLOCA TUS CREDENCIALES DE FIREBASE AQUÍ (Obligatorio para Vercel)
-        const vercelFirebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_PROYECTO.firebaseapp.com",
-            projectId: "TU_PROYECTO_ID",
-            storageBucket: "TU_PROYECTO.appspot.com",
-            messagingSenderId: "TU_SENDER_ID",
-            appId: "TU_APP_ID"
-        };
-
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const ADMIN_CREDENTIALS = { user: "admin", pass: "sphere2024" };
+        const CATEGORIAS = ["FRANELA DAMA", "FRANELA CABALLERO", "CONJUNTO DAMA", "CONJUNTO CABALLERO", "CONJUNTO NIÑA", "CONJUNTO NIÑO", "BUZOS CABALLEROS", "BUZOS DAMA", "FRANELAS NIÑOS", "FRANELAS NIÑAS", "ZAPATOS", "BOLSOS", "VESTIDOS", "ACCESORIOS"];
+        
         let isAdminLoggedIn = false;
-        const CATEGORIAS = ["franela dama", "franela caballero", "Conjunto dama", "conjunto caballero", "conjunto niña", "conjunto niño", "buzos caballeros", "buzos dama", "franelas niños", "franelas niñas", "zapatos", "bolsos", "vestidos", "accesorios"];
-
-        let firebaseConfig;
-        try {
-            firebaseConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : vercelFirebaseConfig;
-        } catch (e) {
-            firebaseConfig = vercelFirebaseConfig;
-        }
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = (typeof __app_id !== 'undefined') ? __app_id : 'style-sphere-app';
-
         let allProducts = [];
 
-        // AUTH SYSTEM
+        // --- AUTH ---
         window.requestAdminAccess = () => {
             if(isAdminLoggedIn) document.getElementById('admin-panel').classList.toggle('hidden');
             else document.getElementById('login-modal').classList.add('active');
         };
-
-        window.closeLoginModal = () => document.getElementById('login-modal').classList.remove('active');
 
         window.handleLogin = () => {
             const u = document.getElementById('login-user').value;
@@ -214,29 +212,21 @@
             if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass) {
                 isAdminLoggedIn = true;
                 document.getElementById('login-modal').classList.remove('active');
-                unlockAdminFeatures();
+                document.getElementById('admin-panel').classList.remove('hidden');
+                document.getElementById('logout-btn').classList.remove('hidden');
+                renderAdminTable();
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
             }
         };
 
-        function unlockAdminFeatures() {
-            document.getElementById('admin-panel').classList.remove('hidden');
-            document.getElementById('admin-nav-trigger').innerHTML = '<i data-lucide="settings" class="w-4 h-4"></i> Gestionar';
-            document.getElementById('logout-btn').classList.remove('hidden');
-            renderAdminTable(allProducts);
-            lucide.createIcons();
-        }
-
         window.logout = () => window.location.reload();
+        window.closeLoginModal = () => document.getElementById('login-modal').classList.remove('active');
 
-        // GEMINI AI ENGINE
+        // --- IA ENGINE ---
         async function callGemini(prompt, systemPrompt = "") {
-            if (!apiKey) {
-                console.error("Falta API Key de Gemini");
-                return "Configuración incompleta: falta la API Key en el código.";
-            }
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            if (!GEMINI_API_KEY) return "Falta API Key.";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
             try {
                 const response = await fetch(url, {
                     method: 'POST',
@@ -247,115 +237,33 @@
                     })
                 });
                 const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "No hay respuesta.";
-            } catch (e) {
-                return "Error al conectar con la IA.";
-            }
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "...";
+            } catch (e) { return "Error IA"; }
         }
 
         window.improveTitleAI = async () => {
-            const name = document.getElementById('prod-nombre').value;
-            if(!name || !isAdminLoggedIn) return;
-            const res = await callGemini(`Mejora este título de ropa: "${name}". Solo el nombre.`);
+            const val = document.getElementById('prod-nombre').value;
+            if(!val) return;
+            const res = await callGemini(`Optimiza este título de producto para SEO y moda: "${val}". Responde solo el título.`);
             document.getElementById('prod-nombre').value = res.trim();
         };
 
-        window.generateDescriptionAI = async () => {
-            const name = document.getElementById('prod-nombre').value;
-            if(!name || !isAdminLoggedIn) return;
-            const res = await callGemini(`Crea descripción corta para: ${name}. Max 10 palabras.`);
-            document.getElementById('prod-desc').value = res.trim();
-        };
-
-        // USER CHAT
-        window.toggleAIChat = () => document.getElementById('ai-chat-window').classList.toggle('active');
-        window.sendChatMessage = async () => {
-            const input = document.getElementById('chat-input');
-            const msg = input.value; if(!msg) return;
-            appendMessage(msg, 'user');
-            input.value = '';
-            const ctx = `Catálogo: ${allProducts.map(p => p.nombre).join(', ')}.`;
-            const res = await callGemini(msg, `Eres el asistente de Style Sphere. ${ctx} Ayuda al cliente.`);
-            appendMessage(res, 'ai');
-        };
-
-        function appendMessage(text, sender) {
-            const container = document.getElementById('chat-messages');
-            const div = document.createElement('div');
-            div.className = sender === 'user' ? 'bg-indigo-100 p-3 rounded-lg self-end max-w-[80%]' : 'bg-gray-100 p-3 rounded-lg self-start max-w-[80%]';
-            div.innerText = text;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // FIREBASE LOGIC
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                onAuthStateChanged(auth, user => { if(user) listenToProducts(); });
-            } catch (e) {
-                console.error("Fallo al autenticar en Firebase:", e);
-                alert("Error de conexión con la base de datos. Verifica tus credenciales de Firebase en el código.");
-            }
-        };
-
-        function listenToProducts() {
-            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
-            onSnapshot(colRef, (snap) => {
-                allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderStore(allProducts);
-                if(isAdminLoggedIn) renderAdminTable(allProducts);
-            }, (err) => {
-                console.error("Error al leer datos:", err);
-            });
-        }
-
-        function renderStore(products) {
-            const grid = document.getElementById('product-grid');
-            grid.innerHTML = products.map(p => `
-                <div class="product-card">
-                    <div class="aspect-[3/4] mb-4 overflow-hidden rounded-lg border">
-                        <img src="${p.imagen}" class="w-full h-full object-cover transition-transform" onerror="this.src='https://via.placeholder.com/400x600?text=No+Image'">
-                    </div>
-                    <div class="space-y-1">
-                        <span class="text-[9px] font-bold text-gray-400 uppercase">${p.categoria}</span>
-                        <h3 class="text-sm font-semibold truncate uppercase">${p.nombre}</h3>
-                        <p class="text-lg font-black">${new Intl.NumberFormat('es-CO', {style:'currency', currency:'COP', maximumFractionDigits:0}).format(p.precio)}</p>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function renderAdminTable(products) {
-            const body = document.getElementById('admin-table-body');
-            body.innerHTML = products.map(p => `
-                <tr class="border-b text-xs">
-                    <td class="p-4"><img src="${p.imagen}" class="w-10 h-10 object-cover rounded"></td>
-                    <td class="p-4 font-bold uppercase">${p.nombre}<br><span class="text-gray-400 font-normal">${p.categoria}</span></td>
-                    <td class="p-4 text-right">$${p.precio}</td>
-                    <td class="p-4 text-center">
-                        <button onclick="editProduct('${p.id}')" class="text-indigo-600 p-2"><i data-lucide="edit"></i></button>
-                        <button onclick="deleteProduct('${p.id}')" class="text-red-500 p-2"><i data-lucide="trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-            lucide.createIcons();
+        // --- SUPABASE CRUD ---
+        async function fetchProducts() {
+            const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
+            if (error) { console.error(error); return; }
+            allProducts = data;
+            renderStore(allProducts);
+            if(isAdminLoggedIn) renderAdminTable();
         }
 
         window.saveProduct = async (e) => {
             e.preventDefault();
-            if(!isAdminLoggedIn) return;
-            
             const btn = document.getElementById('save-btn');
-            btn.disabled = true;
-            btn.innerText = "Guardando...";
+            btn.disabled = true; btn.innerText = "GUARDANDO...";
 
             const id = document.getElementById('edit-id').value;
-            const data = {
+            const payload = {
                 nombre: document.getElementById('prod-nombre').value,
                 precio: Number(document.getElementById('prod-precio').value),
                 categoria: document.getElementById('prod-categoria').value,
@@ -363,25 +271,66 @@
                 descripcion: document.getElementById('prod-desc').value
             };
 
-            try {
-                if(id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), data);
-                else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
+            const action = id 
+                ? _supabase.from('products').update(payload).eq('id', id)
+                : _supabase.from('products').insert([payload]);
+
+            const { error } = await action;
+
+            if (error) {
+                alert("Error Supabase: " + error.message);
+            } else {
                 closeProductModal();
-            } catch (err) {
-                console.error("Error al guardar en Firestore:", err);
-                alert("Error al guardar: " + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Guardar Cambios";
+                fetchProducts();
             }
+            btn.disabled = false; btn.innerText = "GUARDAR CAMBIOS";
         };
 
         window.deleteProduct = async (id) => {
-            if(confirm("¿Eliminar producto?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id));
+            if(!confirm("¿Eliminar permanentemente?")) return;
+            await _supabase.from('products').delete().eq('id', id);
+            fetchProducts();
         };
 
+        // --- RENDERERS ---
+        function renderStore(products) {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = products.map(p => `
+                <div class="product-card group">
+                    <div class="aspect-[3/4] overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 mb-6 relative">
+                        <img src="${p.imagen}" class="product-image w-full h-full object-cover transition-transform duration-700" onerror="this.src='https://via.placeholder.com/600x800?text=Style+Sphere'">
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">${p.categoria}</p>
+                        <h3 class="text-sm font-bold uppercase truncate tracking-tight text-gray-900">${p.nombre}</h3>
+                        <p class="text-xl font-black">${new Intl.NumberFormat('es-CO', {style:'currency', currency:'COP', maximumFractionDigits:0}).format(p.precio)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminTable() {
+            const body = document.getElementById('admin-table-body');
+            body.innerHTML = allProducts.map(p => `
+                <div class="admin-row bg-white border border-gray-100 rounded-2xl p-4 flex items-center shadow-sm hover:shadow-md transition">
+                    <img src="${p.imagen}" class="w-16 h-20 object-cover rounded-xl shadow-sm mr-8">
+                    <div class="flex-1">
+                        <div class="text-xs font-black uppercase tracking-tight">${p.nombre}</div>
+                        <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mt-1">${p.categoria}</div>
+                    </div>
+                    <div class="text-sm font-black mr-12">${new Intl.NumberFormat('es-CO', {style:'currency', currency:'COP', maximumFractionDigits:0}).format(p.precio)}</div>
+                    <div class="flex gap-2">
+                        <button onclick="editProduct('${p.id}')" class="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
         window.editProduct = (id) => {
-            const p = allProducts.find(x => x.id === id);
+            const p = allProducts.find(x => x.id == id);
             document.getElementById('edit-id').value = p.id;
             document.getElementById('prod-nombre').value = p.nombre;
             document.getElementById('prod-precio').value = p.precio;
@@ -391,25 +340,55 @@
             document.getElementById('product-modal').classList.add('active');
         };
 
-        window.openProductModal = () => { document.getElementById('product-form').reset(); document.getElementById('edit-id').value = ''; document.getElementById('product-modal').classList.add('active'); };
+        window.openProductModal = () => {
+            document.getElementById('product-form').reset();
+            document.getElementById('edit-id').value = '';
+            document.getElementById('product-modal').classList.add('active');
+        };
+
         window.closeProductModal = () => document.getElementById('product-modal').classList.remove('active');
 
+        // --- CHAT ---
+        window.toggleAIChat = () => document.getElementById('ai-chat-window').classList.toggle('active');
+        window.sendChatMessage = async () => {
+            const input = document.getElementById('chat-input');
+            const val = input.value; if(!val) return;
+            appendMsg(val, 'user');
+            input.value = '';
+            const ctx = `Catálogo: ${allProducts.map(p => p.nombre + ' (' + p.precio + ')').join(', ')}.`;
+            const res = await callGemini(val, `Eres Style AI. Recomendador de moda. Sé breve y profesional. ${ctx}`);
+            appendMsg(res, 'ai');
+        };
+
+        function appendMsg(text, sender) {
+            const box = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = sender === 'user' ? 'bg-[#5c56d6] text-white p-4 rounded-2xl rounded-tr-none self-end max-w-[85%] shadow-sm' : 'bg-white border border-gray-100 p-4 rounded-2xl rounded-tl-none self-start max-w-[85%] shadow-sm';
+            div.innerText = text;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // --- FILTERS ---
         window.filterProducts = (cat, btn) => {
             document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
             if(btn) btn.classList.add('active');
             renderStore(cat === 'all' ? allProducts : allProducts.filter(p => p.categoria === cat));
         };
 
-        // INITIALIZATION
+        // --- INIT ---
         const sel = document.getElementById('prod-categoria');
         const pils = document.getElementById('pills-container');
         CATEGORIAS.forEach(c => {
             sel.innerHTML += `<option value="${c}">${c}</option>`;
-            pils.innerHTML += `<button onclick="filterProducts('${c}', this)" class="category-pill whitespace-nowrap px-6 py-2 rounded-full border border-gray-200 text-[10px] font-bold uppercase transition-all hover:border-black">${c}</button>`;
+            pils.innerHTML += `<button onclick="filterProducts('${c}', this)" class="category-pill whitespace-nowrap px-8 py-3 rounded-full border border-gray-100 text-[10px] font-black uppercase transition-all hover:border-black">${c}</button>`;
         });
 
         document.getElementById('product-form').onsubmit = window.saveProduct;
-        window.onload = () => { initAuth(); lucide.createIcons(); };
+        window.onload = () => {
+            fetchProducts();
+            lucide.createIcons();
+        };
     </script>
 </body>
 </html>
