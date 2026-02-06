@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Style Sphere | Admin Panel & Shop</title>
+    <title>Style Sphere | Shop & AI Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,6 @@
         .category-pill.active { background-color: black; color: white; border-color: black; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; items-center: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal.active { display: flex; }
-        /* Scrollbar styling para los filtros */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -25,286 +24,250 @@
 </head>
 <body class="bg-gray-50 text-gray-900">
 
-    <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold tracking-tighter text-black cursor-pointer" onclick="window.location.reload()">STYLE SPHERE</h1>
-            <div class="hidden md:flex space-x-8 text-sm font-medium uppercase tracking-widest">
-                <a href="#catalogo" class="hover:text-gray-500 transition">Tienda</a>
-                <button onclick="toggleAdminView()" class="flex items-center gap-2 text-blue-600 font-bold hover:text-blue-800 transition">
-                    <i data-lucide="settings" class="w-4 h-4"></i> Admin
+    <!-- Login Modal (Acceso Admin) -->
+    <div id="login-modal" class="modal px-4">
+        <div class="bg-white w-full max-w-sm p-8 rounded-2xl shadow-2xl text-center relative">
+            <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition">
+                <i data-lucide="x-circle"></i>
+            </button>
+            <h3 class="text-2xl font-bold mb-2 tracking-tighter uppercase">Style Sphere</h3>
+            <p class="text-gray-500 text-[10px] mb-8 uppercase tracking-widest">Panel de Administración</p>
+            <div class="space-y-4">
+                <input type="text" id="login-user" placeholder="Usuario" class="w-full border rounded-lg px-4 py-3 outline-none focus:border-black transition">
+                <input type="password" id="login-pass" placeholder="Contraseña" class="w-full border rounded-lg px-4 py-3 outline-none focus:border-black transition">
+                <button onclick="handleLogin()" class="w-full bg-black text-white font-bold py-3 rounded-lg uppercase tracking-widest hover:bg-gray-800 transition">Iniciar Sesión</button>
+            </div>
+            <p id="login-error" class="text-red-500 text-[10px] mt-4 uppercase hidden">Credenciales incorrectas</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="app-content">
+        <!-- Header -->
+        <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+            <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold tracking-tighter text-black cursor-pointer" onclick="window.location.reload()">STYLE SPHERE</h1>
+                <div class="hidden md:flex space-x-8 text-sm font-medium uppercase tracking-widest">
+                    <a href="#catalogo" class="hover:text-gray-500 transition">Tienda</a>
+                    <button id="admin-nav-trigger" onclick="requestAdminAccess()" class="flex items-center gap-2 text-gray-600 font-bold hover:text-black transition">
+                        <i data-lucide="lock" class="w-4 h-4"></i> Admin
+                    </button>
+                    <button id="logout-btn" onclick="logout()" class="hidden text-red-500 font-bold hover:underline">Cerrar Sesión</button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="https://instagram.com/style.sphere26" target="_blank" class="text-gray-600 hover:text-pink-600 transition">
+                        <i data-lucide="instagram" class="w-5 h-5"></i>
+                    </a>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Admin Panel (Oculto hasta login) -->
+        <section id="admin-panel" class="hidden container mx-auto px-6 py-10 bg-white border-b shadow-inner">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold uppercase tracking-tight">Gestión de Inventario</h2>
+                    <p class="text-gray-500 text-sm italic">Control de productos del catálogo.</p>
+                </div>
+                <button onclick="openProductModal()" class="bg-black text-white px-6 py-3 text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition shadow-lg">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i> Agregar Nuevo
                 </button>
             </div>
-            <div class="flex items-center space-x-4">
-                <a href="https://instagram.com/style.sphere26" target="_blank" class="text-gray-600 hover:text-pink-600 transition">
-                    <i data-lucide="instagram" class="w-5 h-5"></i>
-                </a>
-                <a href="https://wa.me/573249433122" target="_blank" class="text-gray-600 hover:text-green-600 transition md:hidden">
-                    <i data-lucide="phone" class="w-5 h-5"></i>
-                </a>
-            </div>
-        </nav>
-    </header>
-
-    <!-- Admin Panel -->
-    <section id="admin-panel" class="hidden container mx-auto px-6 py-10 bg-white border-b shadow-inner animate-in slide-in-from-top duration-500">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-                <h2 class="text-2xl font-bold uppercase tracking-tight">Gestión de Inventario</h2>
-                <p class="text-gray-500 text-sm italic">Modifica precios, nombres y categorías en tiempo real.</p>
-            </div>
-            <button onclick="openProductModal()" class="bg-black text-white px-6 py-3 text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition shadow-lg">
-                <i data-lucide="plus-circle" class="w-5 h-5"></i> Agregar Nuevo Producto
-            </button>
-        </div>
-        
-        <div class="overflow-x-auto bg-gray-50 rounded-xl border">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b text-[10px] uppercase text-gray-400 font-bold tracking-widest bg-gray-100">
-                        <th class="py-4 px-6">Vista</th>
-                        <th class="py-4 px-2">Producto / Categoría</th>
-                        <th class="py-4 px-2 text-right">Precio</th>
-                        <th class="py-4 px-6 text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-table-body">
-                    <!-- Filas generadas por JS -->
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <!-- Store View -->
-    <main id="store-view">
-        <!-- Hero Section -->
-        <section class="relative h-[40vh] md:h-[50vh] flex items-center justify-center bg-black text-white overflow-hidden">
-            <div class="absolute inset-0 opacity-50">
-                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2070" alt="Moda" class="w-full h-full object-cover">
-            </div>
-            <div class="relative z-10 text-center px-4">
-                <h2 class="text-4xl md:text-6xl font-bold mb-4 tracking-tighter uppercase">Estilo Sin Límites</h2>
-                <p class="text-xs md:text-sm tracking-[0.4em] uppercase font-light">Categorías para toda la familia</p>
-            </div>
-        </section>
-
-        <!-- Catalog Filters -->
-        <section id="catalogo" class="container mx-auto px-6 py-12">
-            <div class="mb-10 text-center md:text-left">
-                <h3 class="text-3xl font-bold mb-2 uppercase tracking-tighter">Nuestro Catálogo</h3>
-                <p class="text-gray-500">Selecciona una categoría para filtrar productos.</p>
-            </div>
             
-            <!-- Category Pills Container with Horizontal Scroll -->
-            <div class="flex items-center gap-4 mb-12 overflow-x-auto py-2 hide-scrollbar">
-                <button onclick="filterProducts('all')" class="category-pill active whitespace-nowrap px-6 py-2 rounded-full border border-gray-300 text-[10px] font-bold uppercase tracking-widest transition-all">Todos</button>
-                <div id="pills-container" class="flex gap-3">
-                    <!-- Dinámicamente insertado por JS -->
-                </div>
-            </div>
-
-            <!-- Product Grid -->
-            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12 min-h-[400px]">
-                <!-- Productos Dinámicos -->
+            <div class="overflow-x-auto bg-gray-50 rounded-xl border">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b text-[10px] uppercase text-gray-400 font-bold tracking-widest bg-gray-100">
+                            <th class="py-4 px-6">Vista</th>
+                            <th class="py-4 px-2">Producto / Categoría</th>
+                            <th class="py-4 px-2 text-right">Precio</th>
+                            <th class="py-4 px-6 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-table-body"></tbody>
+                </table>
             </div>
         </section>
-    </main>
 
-    <!-- Modal Formulario Producto -->
+        <!-- Store View -->
+        <main id="store-view">
+            <section class="relative h-[40vh] flex items-center justify-center bg-black text-white overflow-hidden">
+                <div class="absolute inset-0 opacity-50">
+                    <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2070" class="w-full h-full object-cover">
+                </div>
+                <div class="relative z-10 text-center px-4">
+                    <h2 class="text-4xl md:text-6xl font-bold mb-4 tracking-tighter uppercase">Estilo Inteligente</h2>
+                    <p class="text-xs md:text-sm tracking-[0.4em] uppercase font-light">Pregunta a nuestro asistente de moda</p>
+                </div>
+            </section>
+
+            <section id="catalogo" class="container mx-auto px-6 py-12">
+                <div class="flex items-center gap-4 mb-12 overflow-x-auto py-2 hide-scrollbar">
+                    <button onclick="filterProducts('all')" class="category-pill active whitespace-nowrap px-6 py-2 rounded-full border border-gray-300 text-[10px] font-bold uppercase tracking-widest transition-all">Todos</button>
+                    <div id="pills-container" class="flex gap-3"></div>
+                </div>
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Admin Product Modal -->
     <div id="product-modal" class="modal px-4">
         <div class="bg-white w-full max-w-lg p-8 rounded-2xl shadow-2xl relative overflow-y-auto max-h-[90vh]">
-            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition">
-                <i data-lucide="x-circle" class="w-8 h-8"></i>
-            </button>
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
             <h3 id="modal-title" class="text-2xl font-bold mb-8 uppercase tracking-tight border-b pb-4">Gestión de Producto</h3>
             <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <input type="hidden" id="edit-id">
-                
                 <div class="md:col-span-2">
                     <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest flex justify-between">
                         Nombre de la Prenda
-                        <button type="button" onclick="improveTitleAI()" class="text-blue-600 hover:underline flex items-center gap-1">✨ Mejorar</button>
+                        <button type="button" onclick="improveTitleAI()" class="text-blue-600 hover:underline flex items-center gap-1">✨ IA</button>
                     </label>
-                    <input type="text" id="prod-nombre" required placeholder="Ej: Franela Dama Basic White" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
+                    <input type="text" id="prod-nombre" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
                 </div>
-                
                 <div>
-                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Precio (COP)</label>
-                    <input type="number" id="prod-precio" required placeholder="0" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
+                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Precio</label>
+                    <input type="number" id="prod-precio" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-lg">
                 </div>
-                
                 <div>
                     <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Categoría</label>
-                    <select id="prod-categoria" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition bg-white cursor-pointer" required>
-                        <!-- Opciones cargadas por JS -->
-                    </select>
+                    <select id="prod-categoria" class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition bg-white" required></select>
                 </div>
-                
                 <div class="md:col-span-2">
-                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">Enlace de Imagen (URL)</label>
-                    <input type="url" id="prod-imagen" placeholder="https://imgur.com/tu-foto.jpg" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-sm">
+                    <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest">URL Imagen</label>
+                    <input type="url" id="prod-imagen" required class="w-full border-b border-gray-200 py-3 focus:border-black outline-none transition text-sm">
                 </div>
-
                 <div class="md:col-span-2">
                     <label class="text-[10px] font-bold uppercase text-gray-400 block mb-2 tracking-widest flex justify-between">
-                        Descripción de Marketing
-                        <button type="button" onclick="generateDescriptionAI()" class="text-purple-600 hover:underline flex items-center gap-1">✨ Generar con IA</button>
+                        Descripción Marketing
+                        <button type="button" onclick="generateDescriptionAI()" class="text-purple-600 hover:underline flex items-center gap-1">✨ IA</button>
                     </label>
-                    <textarea id="prod-desc" rows="2" placeholder="Escribe algo breve..." class="w-full border rounded-lg p-3 text-sm focus:border-black outline-none transition"></textarea>
+                    <textarea id="prod-desc" rows="2" class="w-full border rounded-lg p-3 text-sm focus:border-black outline-none transition"></textarea>
                 </div>
-                
                 <div class="md:col-span-2 mt-4">
-                    <button type="submit" class="w-full bg-black text-white font-bold py-4 uppercase tracking-widest hover:bg-gray-800 transition rounded-lg shadow-xl flex justify-center items-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> Guardar Cambios
-                    </button>
+                    <button type="submit" class="w-full bg-black text-white font-bold py-4 uppercase tracking-widest rounded-lg shadow-xl">Guardar Cambios</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- AI Style Assistant (Chatbot) -->
+    <!-- AI Chatbot (Visible para Todos) -->
     <div id="ai-chat-bubble">
         <button onclick="toggleAIChat()" class="bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
             <i data-lucide="sparkles"></i> Asistente ✨
         </button>
     </div>
-
     <div id="ai-chat-window">
         <div class="bg-indigo-600 p-4 text-white flex justify-between items-center rounded-t-xl">
             <span class="font-bold flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i> Guía de Estilo</span>
             <button onclick="toggleAIChat()"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm flex flex-col">
-            <div class="bg-gray-100 p-3 rounded-lg self-start max-w-[80%]">¡Hola! Soy tu asistente de Style Sphere. ¿Buscas un outfit para una ocasión especial? ✨</div>
-        </div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm flex flex-col"></div>
         <div class="p-3 border-t flex gap-2">
-            <input type="text" id="chat-input" placeholder="Pregunta algo..." class="flex-1 border rounded-full px-4 py-2 text-sm outline-none focus:border-indigo-600">
+            <input type="text" id="chat-input" placeholder="Pregunta algo sobre moda..." class="flex-1 border rounded-full px-4 py-2 text-sm outline-none">
             <button onclick="sendChatMessage()" class="bg-indigo-600 text-white p-2 rounded-full"><i data-lucide="send" class="w-4 h-4"></i></button>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer id="contacto" class="bg-black text-white pt-20 pb-10">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-16 mb-20">
-                <div class="text-center md:text-left">
-                    <h4 class="text-2xl font-bold mb-6 tracking-tighter">STYLE SPHERE</h4>
-                    <p class="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto md:mx-0">Tu destino premium para moda en Colombia. Calidad, estilo y atención personalizada en cada compra.</p>
-                </div>
-                <div class="text-center">
-                    <h4 class="text-xs font-bold mb-6 uppercase tracking-[0.3em] text-gray-500">Contacto Directo</h4>
-                    <div class="flex justify-center space-x-8">
-                        <a href="https://wa.me/573249433122" class="hover:text-green-500 transition-all scale-125"><i data-lucide="phone"></i></a>
-                        <a href="https://instagram.com/style.sphere26" class="hover:text-pink-500 transition-all scale-125"><i data-lucide="instagram"></i></a>
-                    </div>
-                    <p class="mt-6 text-sm font-medium">+57 324 9433122</p>
-                </div>
-                <div class="text-center md:text-right">
-                    <h4 class="text-xs font-bold mb-6 uppercase tracking-[0.3em] text-gray-500">Info Ventas</h4>
-                    <p class="text-gray-400 text-sm italic mb-2">Envíos a nivel nacional</p>
-                    <p class="text-gray-400 text-sm italic">Pagos contra-entrega disponibles</p>
-                </div>
-            </div>
-            <div class="border-t border-white/10 pt-8 text-center text-[10px] text-gray-600 uppercase tracking-widest">
-                &copy; 2024 Style Sphere E-Commerce System | AI Powered 
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const apiKey = ""; // API KEY PROPORCIONADA POR EL ENTORNO
+        // CONFIGURACIÓN DE SEGURIDAD
+        const ADMIN_CREDENTIALS = { user: "admin", pass: "sphere2024" };
+        let isAdminLoggedIn = false;
+
+        const apiKey = ""; 
         const CATEGORIAS = ["franela dama", "franela caballero", "Conjunto dama", "conjunto caballero", "conjunto niña", "conjunto niño", "buzos caballeros", "buzos dama", "franelas niños", "franelas niñas", "zapatos", "bolsos", "vestidos", "accesorios"];
 
         const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'style-sphere-main';
-        const WHATSAPP_NUMBER = "573249433122";
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'style-sphere-secure';
 
         let allProducts = [];
-        let user = null;
 
-        // GEMINI API CALL UTILITY
+        // --- SISTEMA DE ACCESO ---
+        window.requestAdminAccess = () => {
+            if(isAdminLoggedIn) {
+                document.getElementById('admin-panel').classList.toggle('hidden');
+            } else {
+                document.getElementById('login-modal').classList.add('active');
+            }
+        };
+
+        window.closeLoginModal = () => document.getElementById('login-modal').classList.remove('active');
+
+        window.handleLogin = () => {
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            const errorMsg = document.getElementById('login-error');
+
+            if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass) {
+                isAdminLoggedIn = true;
+                errorMsg.classList.add('hidden');
+                document.getElementById('login-modal').classList.remove('active');
+                unlockAdminFeatures();
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        };
+
+        function unlockAdminFeatures() {
+            document.getElementById('admin-panel').classList.remove('hidden');
+            document.getElementById('admin-nav-trigger').classList.replace('text-gray-600', 'text-blue-600');
+            document.getElementById('admin-nav-trigger').innerHTML = '<i data-lucide="settings" class="w-4 h-4"></i> Gestionar';
+            document.getElementById('logout-btn').classList.remove('hidden');
+            renderAdminTable(allProducts);
+            lucide.createIcons();
+        }
+
+        window.logout = () => window.location.reload();
+
+        // --- GEMINI API (Ahora accesible para todos) ---
         async function callGemini(prompt, systemPrompt = "") {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] }
             };
-
-            let delay = 1000;
-            for (let i = 0; i < 5; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        body: JSON.stringify(payload),
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const result = await response.json();
-                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Error en la generación.";
-                } catch (e) {
-                    await new Promise(r => setTimeout(r, delay));
-                    delay *= 2;
-                }
-            }
-            return "Lo siento, la IA no está disponible en este momento.";
+            try {
+                const response = await fetch(url, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }});
+                const result = await response.json();
+                return result.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, tuve un problema al procesar tu consulta.";
+            } catch (e) { return "Error de conexión con el asistente."; }
         }
 
-        // AI FEATURES (ADMIN)
         window.improveTitleAI = async () => {
-            const currentTitle = document.getElementById('prod-nombre').value;
-            const category = document.getElementById('prod-categoria').value;
-            if (!currentTitle) return;
-            
-            const btn = event.target;
-            btn.innerText = "Cargando...";
-            const improved = await callGemini(
-                `Mejora este título de prenda de ropa para una tienda online: "${currentTitle}". Categoría: ${category}. Solo devuelve el nuevo título, corto y elegante.`,
-                "Eres un experto en copy de moda de lujo."
-            );
+            if(!isAdminLoggedIn) return; // Función restringida a admin
+            const name = document.getElementById('prod-nombre').value;
+            if(!name) return;
+            const improved = await callGemini(`Mejora este título de ropa: "${name}". Devuelve solo el nuevo título.`);
             document.getElementById('prod-nombre').value = improved.trim().replace(/"/g, '');
-            btn.innerText = "✨ Mejorar";
         };
 
         window.generateDescriptionAI = async () => {
+            if(!isAdminLoggedIn) return; // Función restringida a admin
             const name = document.getElementById('prod-nombre').value;
-            const category = document.getElementById('prod-categoria').value;
-            if (!name) return;
-
-            const btn = event.target;
-            btn.innerText = "Generando...";
-            const desc = await callGemini(
-                `Escribe una descripción de marketing muy breve (máximo 15 palabras) para una prenda llamada "${name}" de la categoría ${category}. Que suene premium.`,
-                "Eres un redactor creativo de moda."
-            );
+            if(!name) return;
+            const desc = await callGemini(`Crea una descripción corta de venta para: ${name}. Máximo 12 palabras.`);
             document.getElementById('prod-desc').value = desc.trim();
-            btn.innerText = "✨ Generar con IA";
         };
 
-        // AI CHATBOT (USER)
+        // --- CHAT DE USUARIO ---
         window.toggleAIChat = () => document.getElementById('ai-chat-window').classList.toggle('active');
-
         window.sendChatMessage = async () => {
             const input = document.getElementById('chat-input');
-            const msg = input.value;
-            if (!msg) return;
-
+            const msg = input.value; if(!msg) return;
             appendMessage(msg, 'user');
             input.value = '';
-
-            const systemPrompt = `Eres el asistente de estilo de Style Sphere Colombia. Ayuda a los usuarios a elegir ropa. 
-            Conoce nuestras categorías: ${CATEGORIAS.join(', ')}. 
-            Si te preguntan qué comprar, recomienda productos basados en el catálogo actual: ${JSON.stringify(allProducts.map(p => p.nombre))}.
-            Responde de forma amable y chic. Si el usuario quiere comprar algo, dile que haga clic en el botón de WhatsApp del producto.`;
-
-            const response = await callGemini(msg, systemPrompt);
-            appendMessage(response, 'ai');
+            
+            // Contexto del catálogo para la IA
+            const context = `Catálogo disponible: ${allProducts.map(p => p.nombre).join(', ')}.`;
+            const res = await callGemini(msg, `Eres el asistente experto de Style Sphere. ${context} Ayuda a los clientes con dudas de moda y tallas.`);
+            appendMessage(res, 'ai');
         };
 
         function appendMessage(text, sender) {
@@ -316,30 +279,10 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // --- FUNCIONES EXISTENTES ADAPTADAS ---
-        function setupUI() {
-            const select = document.getElementById('prod-categoria');
-            const pillsContainer = document.getElementById('pills-container');
-            CATEGORIAS.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat; opt.innerText = cat;
-                select.appendChild(opt);
-                const pill = document.createElement('button');
-                pill.className = "category-pill whitespace-nowrap px-6 py-2 rounded-full border border-gray-200 text-[10px] font-bold uppercase tracking-widest hover:border-black transition-all";
-                pill.innerText = cat;
-                pill.onclick = () => filterProducts(cat, pill);
-                pillsContainer.appendChild(pill);
-            });
-            lucide.createIcons();
-        }
-
+        // --- FIREBASE ---
         const initAuth = async () => {
-            try {
-                await signInAnonymously(auth);
-                onAuthStateChanged(auth, (u) => {
-                    user = u; if(user) listenToProducts();
-                });
-            } catch (error) { console.error("Auth error", error); }
+            await signInAnonymously(auth);
+            onAuthStateChanged(auth, (u) => { if(u) listenToProducts(); });
         };
 
         function listenToProducts() {
@@ -347,26 +290,24 @@
             onSnapshot(colRef, (snapshot) => {
                 allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderStore(allProducts);
-                renderAdminTable(allProducts);
+                if(isAdminLoggedIn) renderAdminTable(allProducts);
             });
         }
 
         function renderStore(products) {
             const grid = document.getElementById('product-grid');
-            grid.innerHTML = products.length === 0 ? '<div class="col-span-full text-center py-20 text-gray-400 italic">No hay productos aún.</div>' : '';
+            grid.innerHTML = '';
             products.forEach(p => {
-                const message = encodeURIComponent(`Hola Style Sphere, me interesa: ${p.nombre}`);
                 grid.innerHTML += `
-                    <div class="product-card group animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div class="relative overflow-hidden bg-white aspect-[3/4] mb-6 rounded-lg shadow-sm border">
-                            <img src="${p.imagen}" class="product-image w-full h-full object-cover transition-transform duration-1000">
+                    <div class="product-card group">
+                        <div class="relative overflow-hidden bg-white aspect-[3/4] mb-4 rounded-lg border">
+                            <img src="${p.imagen}" class="product-image w-full h-full object-cover transition-transform">
                         </div>
-                        <div class="space-y-2">
+                        <div class="space-y-1">
                             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">${p.categoria}</span>
-                            <h3 class="text-sm font-semibold uppercase">${p.nombre}</h3>
-                            <p class="text-xs text-gray-500 italic">${p.descripcion || ''}</p>
-                            <p class="text-xl font-bold text-black">${formatCurrency(p.precio)}</p>
-                            <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" target="_blank" class="flex items-center justify-center gap-2 w-full bg-white border border-black py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all">Consultar WhatsApp</a>
+                            <h3 class="text-sm font-semibold uppercase truncate">${p.nombre}</h3>
+                            <p class="text-xs text-gray-500 line-clamp-1">${p.descripcion || ''}</p>
+                            <p class="text-lg font-black text-black">${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio)}</p>
                         </div>
                     </div>`;
             });
@@ -378,13 +319,13 @@
             tableBody.innerHTML = '';
             products.forEach(p => {
                 tableBody.innerHTML += `
-                    <tr class="border-b hover:bg-white transition group">
-                        <td class="py-4 px-6"><img src="${p.imagen}" class="w-14 h-14 object-cover rounded shadow-sm"></td>
+                    <tr class="border-b">
+                        <td class="py-4 px-6"><img src="${p.imagen}" class="w-12 h-12 object-cover rounded"></td>
                         <td class="py-4 px-2">
                             <div class="font-bold text-xs uppercase">${p.nombre}</div>
                             <div class="text-[9px] text-gray-400 uppercase">${p.categoria}</div>
                         </td>
-                        <td class="py-4 px-2 text-right font-bold text-sm">${formatCurrency(p.precio)}</td>
+                        <td class="py-4 px-2 text-right font-bold text-sm">${p.precio}</td>
                         <td class="py-4 px-6 text-center">
                             <button onclick="editProduct('${p.id}')" class="p-2 text-indigo-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
                             <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -396,28 +337,24 @@
 
         window.saveProduct = async (e) => {
             e.preventDefault();
-            if(!user) return;
+            if(!isAdminLoggedIn) return;
             const id = document.getElementById('edit-id').value;
             const data = {
                 nombre: document.getElementById('prod-nombre').value,
                 precio: Number(document.getElementById('prod-precio').value),
                 categoria: document.getElementById('prod-categoria').value,
                 imagen: document.getElementById('prod-imagen').value,
-                descripcion: document.getElementById('prod-desc').value,
-                updatedAt: new Date().toISOString()
+                descripcion: document.getElementById('prod-desc').value
             };
-            try {
-                if (id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), data);
-                else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
-                closeProductModal();
-            } catch (err) { console.error(err); }
+            if(id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), data);
+            else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
+            closeProductModal();
         };
 
-        window.deleteProduct = async (id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id)); };
+        window.deleteProduct = async (id) => { if(isAdminLoggedIn && confirm("¿Borrar?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id)); };
         
         window.editProduct = (id) => {
-            const p = allProducts.find(prod => prod.id === id);
-            if(!p) return;
+            const p = allProducts.find(x => x.id === id);
             document.getElementById('edit-id').value = p.id;
             document.getElementById('prod-nombre').value = p.nombre;
             document.getElementById('prod-precio').value = p.precio;
@@ -427,20 +364,26 @@
             document.getElementById('product-modal').classList.add('active');
         };
 
-        const formatCurrency = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
-        window.toggleAdminView = () => document.getElementById('admin-panel').classList.toggle('hidden');
         window.openProductModal = () => { document.getElementById('product-form').reset(); document.getElementById('edit-id').value = ''; document.getElementById('product-modal').classList.add('active'); };
         window.closeProductModal = () => document.getElementById('product-modal').classList.remove('active');
-        window.filterProducts = (cat, clickedPill = null) => {
-            const pills = document.querySelectorAll('.category-pill');
-            pills.forEach(p => p.classList.remove('active', 'bg-black', 'text-white'));
-            if(clickedPill) clickedPill.classList.add('active');
+        window.filterProducts = (cat, btn) => {
+            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+            if(btn) btn.classList.add('active');
             renderStore(cat === 'all' ? allProducts : allProducts.filter(p => p.categoria === cat));
         };
 
+        // SETUP UI INICIAL
+        const select = document.getElementById('prod-categoria');
+        const pills = document.getElementById('pills-container');
+        CATEGORIAS.forEach(cat => {
+            const o = document.createElement('option'); o.value = cat; o.innerText = cat; select.appendChild(o);
+            const b = document.createElement('button'); b.innerText = cat; b.className="category-pill whitespace-nowrap px-6 py-2 rounded-full border border-gray-200 text-[10px] font-bold uppercase";
+            b.onclick = () => filterProducts(cat, b); pills.appendChild(b);
+        });
+
         document.getElementById('product-form').onsubmit = window.saveProduct;
-        setupUI();
         initAuth();
+        lucide.createIcons();
     </script>
 </body>
 </html>
