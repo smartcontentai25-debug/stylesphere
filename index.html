@@ -171,21 +171,37 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // CONFIGURACIÓN DE SEGURIDAD
         const ADMIN_CREDENTIALS = { user: "admin", pass: "sphere2024" };
         let isAdminLoggedIn = false;
 
+        // IMPORTANTE: Reemplaza esto con tu API Key real para que funcione en Vercel
         const apiKey = ""; 
         const CATEGORIAS = ["franela dama", "franela caballero", "Conjunto dama", "conjunto caballero", "conjunto niña", "conjunto niño", "buzos caballeros", "buzos dama", "franelas niños", "franelas niñas", "zapatos", "bolsos", "vestidos", "accesorios"];
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // Lógica de detección de entorno
+        let firebaseConfig;
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                // Si publicas en Vercel, coloca aquí tu configuración de Firebase de la consola de Google
+                apiKey: "TU_API_KEY",
+                authDomain: "TU_DOMINIO.firebaseapp.com",
+                projectId: "TU_PROJECT_ID",
+                storageBucket: "TU_BUCKET.appspot.com",
+                messagingSenderId: "TU_ID",
+                appId: "TU_APP_ID"
+            };
+        } catch (e) {
+            console.error("Error al cargar configuración de Firebase");
+        }
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'style-sphere-secure';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'style-sphere-prod';
 
         let allProducts = [];
 
@@ -226,22 +242,38 @@
 
         window.logout = () => window.location.reload();
 
-        // --- GEMINI API (Ahora accesible para todos) ---
+        // --- GEMINI API ---
         async function callGemini(prompt, systemPrompt = "") {
+            if (!apiKey) return "El asistente no está configurado (Falta API Key).";
+            
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] }
             };
-            try {
-                const response = await fetch(url, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }});
-                const result = await response.json();
-                return result.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, tuve un problema al procesar tu consulta.";
-            } catch (e) { return "Error de conexión con el asistente."; }
+
+            let retries = 5;
+            let delay = 1000;
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, { 
+                        method: 'POST', 
+                        body: JSON.stringify(payload), 
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "No obtuve una respuesta clara.";
+                } catch (e) {
+                    if (i === retries - 1) return "Error de conexión persistente con la IA.";
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
         }
 
         window.improveTitleAI = async () => {
-            if(!isAdminLoggedIn) return; // Función restringida a admin
+            if(!isAdminLoggedIn) return;
             const name = document.getElementById('prod-nombre').value;
             if(!name) return;
             const improved = await callGemini(`Mejora este título de ropa: "${name}". Devuelve solo el nuevo título.`);
@@ -249,7 +281,7 @@
         };
 
         window.generateDescriptionAI = async () => {
-            if(!isAdminLoggedIn) return; // Función restringida a admin
+            if(!isAdminLoggedIn) return;
             const name = document.getElementById('prod-nombre').value;
             if(!name) return;
             const desc = await callGemini(`Crea una descripción corta de venta para: ${name}. Máximo 12 palabras.`);
@@ -264,7 +296,6 @@
             appendMessage(msg, 'user');
             input.value = '';
             
-            // Contexto del catálogo para la IA
             const context = `Catálogo disponible: ${allProducts.map(p => p.nombre).join(', ')}.`;
             const res = await callGemini(msg, `Eres el asistente experto de Style Sphere. ${context} Ayuda a los clientes con dudas de moda y tallas.`);
             appendMessage(res, 'ai');
@@ -279,29 +310,47 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // --- FIREBASE ---
+        // --- FIREBASE OPS ---
         const initAuth = async () => {
-            await signInAnonymously(auth);
-            onAuthStateChanged(auth, (u) => { if(u) listenToProducts(); });
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error de autenticación:", error);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if(user) listenToProducts();
+            });
         };
 
         function listenToProducts() {
+            const user = auth.currentUser;
+            if (!user) return;
+
             const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
-            onSnapshot(colRef, (snapshot) => {
-                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderStore(allProducts);
-                if(isAdminLoggedIn) renderAdminTable(allProducts);
-            });
+            onSnapshot(colRef, 
+                (snapshot) => {
+                    allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderStore(allProducts);
+                    if(isAdminLoggedIn) renderAdminTable(allProducts);
+                },
+                (error) => console.error("Error de Firestore:", error)
+            );
         }
 
         function renderStore(products) {
             const grid = document.getElementById('product-grid');
+            if (!grid) return;
             grid.innerHTML = '';
             products.forEach(p => {
                 grid.innerHTML += `
                     <div class="product-card group">
                         <div class="relative overflow-hidden bg-white aspect-[3/4] mb-4 rounded-lg border">
-                            <img src="${p.imagen}" class="product-image w-full h-full object-cover transition-transform">
+                            <img src="${p.imagen}" class="product-image w-full h-full object-cover transition-transform" onerror="this.src='https://via.placeholder.com/400x600?text=Sin+Imagen'">
                         </div>
                         <div class="space-y-1">
                             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">${p.categoria}</span>
@@ -316,11 +365,12 @@
 
         function renderAdminTable(products) {
             const tableBody = document.getElementById('admin-table-body');
+            if (!tableBody) return;
             tableBody.innerHTML = '';
             products.forEach(p => {
                 tableBody.innerHTML += `
                     <tr class="border-b">
-                        <td class="py-4 px-6"><img src="${p.imagen}" class="w-12 h-12 object-cover rounded"></td>
+                        <td class="py-4 px-6"><img src="${p.imagen}" class="w-12 h-12 object-cover rounded" onerror="this.src='https://via.placeholder.com/50x50'"></td>
                         <td class="py-4 px-2">
                             <div class="font-bold text-xs uppercase">${p.nombre}</div>
                             <div class="text-[9px] text-gray-400 uppercase">${p.categoria}</div>
@@ -337,7 +387,8 @@
 
         window.saveProduct = async (e) => {
             e.preventDefault();
-            if(!isAdminLoggedIn) return;
+            if(!isAdminLoggedIn || !auth.currentUser) return;
+            
             const id = document.getElementById('edit-id').value;
             const data = {
                 nombre: document.getElementById('prod-nombre').value,
@@ -346,15 +397,25 @@
                 imagen: document.getElementById('prod-imagen').value,
                 descripcion: document.getElementById('prod-desc').value
             };
-            if(id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), data);
-            else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
-            closeProductModal();
+
+            try {
+                if(id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), data);
+                else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
+                closeProductModal();
+            } catch (err) {
+                console.error("Error al guardar:", err);
+            }
         };
 
-        window.deleteProduct = async (id) => { if(isAdminLoggedIn && confirm("¿Borrar?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id)); };
+        window.deleteProduct = async (id) => { 
+            if(isAdminLoggedIn && auth.currentUser && confirm("¿Estás seguro de eliminar este producto?")) {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id)); 
+            }
+        };
         
         window.editProduct = (id) => {
             const p = allProducts.find(x => x.id === id);
+            if (!p) return;
             document.getElementById('edit-id').value = p.id;
             document.getElementById('prod-nombre').value = p.nombre;
             document.getElementById('prod-precio').value = p.precio;
@@ -364,26 +425,36 @@
             document.getElementById('product-modal').classList.add('active');
         };
 
-        window.openProductModal = () => { document.getElementById('product-form').reset(); document.getElementById('edit-id').value = ''; document.getElementById('product-modal').classList.add('active'); };
+        window.openProductModal = () => { 
+            document.getElementById('product-form').reset(); 
+            document.getElementById('edit-id').value = ''; 
+            document.getElementById('product-modal').classList.add('active'); 
+        };
         window.closeProductModal = () => document.getElementById('product-modal').classList.remove('active');
+        
         window.filterProducts = (cat, btn) => {
             document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
             if(btn) btn.classList.add('active');
+            else if(cat === 'all') document.querySelector('.category-pill').classList.add('active');
             renderStore(cat === 'all' ? allProducts : allProducts.filter(p => p.categoria === cat));
         };
 
         // SETUP UI INICIAL
         const select = document.getElementById('prod-categoria');
         const pills = document.getElementById('pills-container');
+        
         CATEGORIAS.forEach(cat => {
             const o = document.createElement('option'); o.value = cat; o.innerText = cat; select.appendChild(o);
-            const b = document.createElement('button'); b.innerText = cat; b.className="category-pill whitespace-nowrap px-6 py-2 rounded-full border border-gray-200 text-[10px] font-bold uppercase";
+            const b = document.createElement('button'); b.innerText = cat; b.className="category-pill whitespace-nowrap px-6 py-2 rounded-full border border-gray-200 text-[10px] font-bold uppercase transition-all hover:border-black";
             b.onclick = () => filterProducts(cat, b); pills.appendChild(b);
         });
 
         document.getElementById('product-form').onsubmit = window.saveProduct;
-        initAuth();
-        lucide.createIcons();
+        
+        window.onload = () => {
+            initAuth();
+            lucide.createIcons();
+        };
     </script>
 </body>
 </html>
