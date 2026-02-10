@@ -21,6 +21,8 @@
         #ai-chat-window { position: fixed; bottom: 100px; right: 30px; width: 350px; height: 500px; background: white; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); display: none; flex-direction: column; z-index: 1000; border: 1px solid #f0f0f0; overflow: hidden; }
         #ai-chat-window.active { display: flex; }
 
+        #whatsapp-btn { position: fixed; bottom: 30px; left: 30px; z-index: 1000; }
+
         @keyframes pulse-custom {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -29,6 +31,13 @@
     </style>
 </head>
 <body class="bg-white text-gray-900">
+
+    <!-- WhatsApp Floating Button -->
+    <div id="whatsapp-btn">
+        <a href="https://wa.me/573000000000" target="_blank" class="bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center">
+            <i data-lucide="phone" class="w-6 h-6"></i>
+        </a>
+    </div>
 
     <!-- Login Modal -->
     <div id="login-modal" class="modal px-4">
@@ -184,7 +193,7 @@
     </div>
 
     <script>
-        // Configuración - API Key se inyecta sola, dejar vacía.
+        // Configuración - El entorno inyectará automáticamente GOOGLE_GENERATIVE_AI_API_KEY
         const apiKey = ""; 
         const SUPABASE_URL = "https://csrelkrimlnbmipkfogi.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_0Nl2M01kw3L41kckQtTM7A_1qpN6W5U";
@@ -198,7 +207,9 @@
 
         // IA Engine: Manejo de reintentos y error handling
         async function callGemini(userQuery, systemPrompt = "") {
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            // Se utiliza el modelo soportado por el entorno
+            const model = "gemini-2.5-flash-preview-09-2025";
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
             
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
@@ -223,7 +234,7 @@
                         await new Promise(r => setTimeout(r, delay));
                         continue;
                     }
-                    throw new Error(`API Error: ${response.status}`);
+                    throw new Error(`Error API: ${response.status}`);
                 } catch (e) {
                     if (i === 4) throw e;
                 }
@@ -242,6 +253,7 @@
 
         function renderStore(products) {
             const grid = document.getElementById('product-grid');
+            if(!grid) return;
             grid.innerHTML = products.map(p => `
                 <div class="product-card group animate-in fade-in duration-500">
                     <div class="aspect-[3/4] overflow-hidden rounded-2xl bg-gray-50 mb-4 border border-gray-100">
@@ -256,6 +268,7 @@
 
         function renderAdminTable() {
             const body = document.getElementById('admin-table-body');
+            if(!body) return;
             body.innerHTML = allProducts.map(p => `
                 <div class="bg-white border border-gray-100 rounded-2xl p-4 flex items-center shadow-sm">
                     <img src="${p.imagen}" class="w-12 h-16 object-cover rounded-lg mr-6">
@@ -284,13 +297,13 @@
             const loadingDiv = appendMsg('...', 'ai', true);
 
             try {
-                const ctx = `Catálogo actual: ${allProducts.slice(0, 10).map(p => p.nombre + ' (' + p.precio + ')').join(', ')}.`;
-                const response = await callGemini(val, `Eres Style AI. Sé breve, usa emojis y recomienda productos del catálogo si es posible. ${ctx}`);
+                const ctx = `Catálogo actual: ${allProducts.slice(0, 15).map(p => p.nombre + ' (' + p.precio + ' COP)').join(', ')}.`;
+                const response = await callGemini(val, `Eres Style AI, el asesor experto de la tienda Style Sphere. Sé amable, breve y usa emojis. Recomienda productos específicos del catálogo si el usuario pregunta. ${ctx}`);
                 
                 loadingDiv.innerText = response;
                 loadingDiv.classList.remove('loading-ai');
             } catch (e) {
-                loadingDiv.innerText = "Lo siento, tuve un problema al conectar. ¿Podrías intentar de nuevo?";
+                loadingDiv.innerText = "Lo siento, hubo un problema de conexión con el servidor de IA. Por favor, intenta de nuevo en un momento.";
                 loadingDiv.classList.remove('loading-ai');
             }
         };
@@ -314,7 +327,7 @@
             
             btn.innerText = "⌛"; btn.disabled = true;
             try {
-                const res = await callGemini(`Mejora este nombre de producto para que suene más exclusivo y profesional: "${input.value}". Solo devuelve el nombre mejorado.`);
+                const res = await callGemini(`Mejora este nombre de producto para que suene más exclusivo y profesional: "${input.value}". Solo devuelve el nombre mejorado, sin explicaciones ni comillas.`);
                 input.value = res.replace(/"/g, '').trim();
             } finally {
                 btn.innerText = "✨ IA"; btn.disabled = false;
@@ -323,8 +336,12 @@
 
         // --- Gestión de Admin ---
         window.requestAdminAccess = () => {
-            if(isAdminLoggedIn) document.getElementById('admin-panel').classList.toggle('hidden');
-            else document.getElementById('login-modal').classList.add('active');
+            if(isAdminLoggedIn) {
+                document.getElementById('admin-panel').classList.toggle('hidden');
+                document.getElementById('store-view').classList.toggle('hidden');
+            } else {
+                document.getElementById('login-modal').classList.add('active');
+            }
         };
 
         window.handleLogin = () => {
@@ -333,6 +350,7 @@
                 isAdminLoggedIn = true;
                 document.getElementById('login-modal').classList.remove('active');
                 document.getElementById('admin-panel').classList.remove('hidden');
+                document.getElementById('store-view').classList.add('hidden');
                 document.getElementById('logout-btn').classList.remove('hidden');
                 renderAdminTable();
             } else {
@@ -347,6 +365,7 @@
         window.openProductModal = () => {
             document.getElementById('product-form').reset();
             document.getElementById('edit-id').value = '';
+            document.getElementById('modal-title').innerText = "Nuevo Producto";
             document.getElementById('product-modal').classList.add('active');
         };
 
@@ -358,6 +377,7 @@
                 document.getElementById('prod-precio').value = p.precio;
                 document.getElementById('prod-categoria').value = p.categoria;
                 document.getElementById('prod-imagen').value = p.imagen;
+                document.getElementById('modal-title').innerText = "Editar Producto";
                 document.getElementById('product-modal').classList.add('active');
             }
         };
@@ -381,7 +401,7 @@
         };
 
         window.deleteProduct = async (id) => {
-            if(confirm("¿Eliminar este producto?")) {
+            if(confirm("¿Estás seguro de que deseas eliminar este producto?")) {
                 await _supabase.from('products').delete().eq('id', id);
                 fetchProducts();
             }
@@ -393,12 +413,12 @@
             renderStore(cat === 'all' ? allProducts : allProducts.filter(p => p.categoria === cat));
         };
 
-        // Init
+        // Inicialización
         const pils = document.getElementById('pills-container');
         const catsel = document.getElementById('prod-categoria');
         CATEGORIAS.forEach(c => {
-            pils.innerHTML += `<button onclick="filterProducts('${c}', this)" class="category-pill whitespace-nowrap px-8 py-3 rounded-full border border-gray-200 text-[10px] font-black uppercase transition-all hover:border-black">${c}</button>`;
-            catsel.innerHTML += `<option value="${c}">${c}</option>`;
+            if(pils) pils.innerHTML += `<button onclick="filterProducts('${c}', this)" class="category-pill whitespace-nowrap px-8 py-3 rounded-full border border-gray-200 text-[10px] font-black uppercase transition-all hover:border-black">${c}</button>`;
+            if(catsel) catsel.innerHTML += `<option value="${c}">${c}</option>`;
         });
 
         document.getElementById('product-form').onsubmit = window.saveProduct;
@@ -406,6 +426,11 @@
             fetchProducts();
             lucide.createIcons();
         };
+
+        // Enviar mensaje con Enter
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') sendChatMessage();
+        });
     </script>
 </body>
 </html>
