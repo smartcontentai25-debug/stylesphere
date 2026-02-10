@@ -193,8 +193,12 @@
     </div>
 
     <script>
-        // Configuración - El entorno inyectará automáticamente GOOGLE_GENERATIVE_AI_API_KEY
+        // --- INICIALIZACIÓN DE IA ---
+        // Se utiliza la API Key proporcionada por el entorno para inicializar el modelo
         const apiKey = ""; 
+        
+        // Simulación de la lógica solicitada para entornos de backend/Vercel adaptada a cliente
+        // En este entorno, la API Key se inyecta dinámicamente en la constante 'apiKey'
         const SUPABASE_URL = "https://csrelkrimlnbmipkfogi.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_0Nl2M01kw3L41kckQtTM7A_1qpN6W5U";
         
@@ -205,9 +209,8 @@
         let allProducts = [];
         let isAdminLoggedIn = false;
 
-        // IA Engine: Manejo de reintentos y error handling
+        // IA Engine: Manejo de llamadas a Gemini 2.5 Flash
         async function callGemini(userQuery, systemPrompt = "") {
-            // Se utiliza el modelo soportado por el entorno
             const model = "gemini-2.5-flash-preview-09-2025";
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
             
